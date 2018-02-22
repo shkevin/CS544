@@ -45,5 +45,16 @@ typedef struct cipherText {
 
 cipherText concatenate(cipherText cipherText);
 
+void checkPadding()
+{
+	for (int i = 1; i < 16; ++i)
+	{
+		for (int j = 1; j < i; ++j)
+		{
+			printf("%d\n", i);
+		}
+	}
+}
+
 
 #endif
