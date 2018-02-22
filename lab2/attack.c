@@ -7,10 +7,11 @@ struct sockaddr_in server;
 
 int main(int argc, char *argv[])
 {
-	char message[1000] , serverReply[2000];
-	cipherText C;
-	int *bruteForceArray = initializeArray();
-	C.cipherPrime = "thisIsPlainSilly";
+	char message[1024] , serverReply[2048];
+	char *userMsg;
+	// cipherText C;
+	// int *bruteForceArray = initializeArray();
+	// C.cipherPrime = "thisIsPlainSilly";
 
 	//Verify input arguments
 	commands commands = parseCMD(argc, argv);
@@ -19,6 +20,8 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Incorrect commands usage\n");
 		exit(1);
 	}
+
+	userMsg = commands.msg;
 
 	//Create socket
     sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -46,7 +49,7 @@ int main(int argc, char *argv[])
     // {
     // 	break;
     	//Send a message to the server
-    	if(send(sock, message, strlen(message) , 0) < 0)
+    	if(send(sock, userMsg, strlen(message) , 0) < 0)
         {
             //process first move here
             puts("Send failed");
@@ -89,11 +92,9 @@ commands parseCMD(int argc, char *argv[])
 		{
 			case 'p':
 				commands.port = atoi(optarg);
-				printf("%d\n", commands.port);
 				break;
 			case 'm':
 				commands.msg = optarg;
-				printf("%s\n", commands.msg);
 				break;
 			default:
 				printf("Incorrect usage of attack\n");
