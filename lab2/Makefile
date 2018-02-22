@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g -Wall -Werror
+CFLAGS = -g -Wall
 
 all: attack
 	-tar -cvf ${USER}-handin.tar attack.c attack.h

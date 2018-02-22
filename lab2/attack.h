@@ -3,14 +3,21 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
+#include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <openssl/rsa.h>
+#include <openssl/err.h>
 
 //Block size will be in bytes
 #define blockSize 16
 
-char *P;
-int N;
+int bruteForceArray[256]; 
 
-typedef struct cipherText {
+typedef struct cipherText
+{
 // 	char *cipher = "0x79, 0xef, 0xed, 0xee, 0x65, 0x52, 0x00, 0xb9, 
 // 0x9d, 0xa1, 0x00, 0xce, 0x43, 0x70, 0x76, 0xec, 
 // 0x0a, 0x26, 0xf0, 0x9d, 0x76, 0x67, 0x43, 0xa4, 
@@ -36,14 +43,30 @@ typedef struct cipherText {
 // 0x33, 0x13, 0x4e, 0xe2, 0x9b, 0xf0, 0x76, 0xc0, 
 // 0x18, 0x02, 0xce, 0x15, 0x0b, 0xe4, 0xe5, 0x2d";
 
+	int N;
 	//This text is given by following the TCP stream of 10041.pcap
 	char *ciper;
+	int *validPadding;
 	//This will be of length N
 	char *cipherPrime;
+	char *P;
 
 }cipherText;
 
+typedef struct commands
+{
+	int port;
+	char *msg;
+	char *ip;
+	bool error;
+}commands;
+
 cipherText concatenate(cipherText cipherText);
 
+int* initializeArray();
+
+cipherText solveBlock(cipherText cipherText);
+
+commands parseCMD(int argc, char *argv[]);
 
 #endif
