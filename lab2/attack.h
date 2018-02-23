@@ -10,6 +10,8 @@
 #include <openssl/pem.h>
 #include <openssl/rsa.h>
 #include <openssl/err.h>
+#include <openssl/rand.h>
+#include <openssl/aes.h>
 
 //Block size will be in bytes
 #define blockSize 16
@@ -56,8 +58,9 @@ typedef struct cipherText
 typedef struct commands
 {
 	int port;
-	char *msg;
+	unsigned char *msg;
 	char *ip;
+	FILE* file;
 	bool error;
 }commands;
 
@@ -68,5 +71,9 @@ int* initializeArray();
 cipherText solveBlock(cipherText cipherText);
 
 commands parseCMD(int argc, char *argv[]);
+
+FILE* readKey(char *file);
+
+void print_data(const char *tittle, const void* data, int len);
 
 #endif
