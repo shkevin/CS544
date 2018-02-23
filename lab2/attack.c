@@ -29,20 +29,20 @@ int main(int argc, char *argv[])
 	AES_KEY enc_key, dec_key;
 
 	//Read the public key
-	// if (!PEM_read_RSA_PUBKEY(commands.file, &publicKey, NULL, NULL))
-	// {
-	// 	fprintf(stderr, "Error loading RSA Public Key File.\n");
- //        ERR_print_errors_fp(stderr);
- //        exit(1);
-	// }
+	if (!PEM_read_RSA_PUBKEY(commands.file, &publicKey, NULL, NULL))
+	{
+		fprintf(stderr, "Error loading RSA Public Key File.\n");
+        ERR_print_errors_fp(stderr);
+        exit(1);
+	}
 	unsigned char *aes_input=msg;
 	// unsigned char *aes_input= aes_key;
 
-	printf("%lu\n", sizeof(publicKey)*sizeof(RSA));
-	// if (AES_set_encrypt_key(publicKey, sizeof(aes_key)*8, &enc_key) != 0)
-	// {
-	// 	puts("Couldn't encrypt key");
-	// }
+	// printf("%lu\n", sizeof(publicKey)*sizeof(RSA));
+	if (AES_set_encrypt_key(publicKey, sizeof(aes_key)*8, &enc_key) != 0)
+	{
+		puts("Couldn't encrypt key");
+	}
 
 	printf("sending: %s\n", commands.msg);
 
@@ -74,10 +74,10 @@ int main(int argc, char *argv[])
     	//Send a message to the server
 
     	/* AES-128 bit CBC Encryption */
-		AES_set_encrypt_key(aes_key, sizeof(aes_key)*8, &enc_key);
+		// AES_set_encrypt_key(aes_key, sizeof(aes_key)*8, &enc_key);
 		AES_cbc_encrypt(aes_input, enc_out, strlen((const char*)msg), &enc_key, iv, AES_ENCRYPT);
 
-    	if(send(sock, aes_input, strlen((const char*)aes_input) , 0) < 0)
+    	if(send(sock, enc_out, strlen((const char*)enc_out) , 0) < 0)
         {
             //process first move here
             puts("Send failed");
