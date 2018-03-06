@@ -66,6 +66,7 @@ typedef struct commands
 
 cipherText concatenate(cipherText cipherText);
 
+<<<<<<< HEAD
 int* initializeArray();
 
 cipherText solveBlock(cipherText cipherText);
@@ -75,5 +76,18 @@ commands parseCMD(int argc, char *argv[]);
 FILE* readKey(char *file);
 
 void print_data(const char *tittle, const void* data, int len);
+=======
+void checkPadding()
+{
+	for (int i = 1; i < 16; ++i)
+	{
+		for (int j = 1; j < i; ++j)
+		{
+			printf("%d\n", i);
+		}
+	}
+}
+
+>>>>>>> eb4b7803119f71556b8c64b1d0940126968b3758
 
 #endif
