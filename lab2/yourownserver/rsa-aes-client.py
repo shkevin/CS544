@@ -5,7 +5,6 @@ import os
 from aes import *
 from Crypto.PublicKey import RSA
 from Crypto.Util.number import *
-import binascii
 
 # Handle command-line arguments
 parser = argparse.ArgumentParser()
@@ -19,14 +18,14 @@ args = parser.parse_args()
 
 
 # Create a TCP/IP socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-# Connect the socket to the port where the server is listening
-server_address = (args.ipaddress, int(args.port))
-sock.connect(server_address)
+# # Connect the socket to the port where the server is listening
+# server_address = (args.ipaddress, int(args.port))
+# sock.connect(server_address)
 
-AESKey = os.urandom(16)
-print "Using AES key " + ':'.join(x.encode('hex') for x in AESKey)
+# AESKey = os.urandom(16)
+
 
 # load server's public key
 serverPublicKeyFileName = "serverPublicKey"
@@ -35,50 +34,71 @@ key = RSA.importKey(f.read())
 n, e = key.n, key.e
 MESSAGE_LENGTH = 15
 
-rsaCiper = bytearray.fromhex('')
+# Initial AES Key to be all 0
+AESKey = [0] * 128
 
-msgToCrack = bytearray.fromhex('')
+rsaCiper = bytearray.fromhex('5fcb94936bd5926ec03a70fee7380687f9c523371e08b7bd19a511f5f548f80af265ec1044e3a5cfa9a2d52a13b19496819253231e19eca855f1a734e1eb3584d85a9bfc4a3600ca9018bb55bf20e468d5b9f18a8bc786a25bbe0c6c9fbc2ce15cd7d689385b136bb2428c7b514b358849c6cb422127275b5dc40d92b873e2763c26cb7e0bca5ab484a3522a6df975c909df67f9c4999826ef801c31375a7d93')
+
+msgToCrack = bytearray.fromhex('5cce0bde11f5f815ae0292cd08c3c81f4b6036ec39f10c45fbe61c1a8822c9e6')
 
 cipher = bytes_to_long(rsaCiper[:128])
-aesKeyToCrack = [0] * 128
 
-msg = ""
-encryptedKey = str(key.encrypt(AESKey, 16)[0])
-msg += encryptedKey
+for x in range(127, 0, -1):
+  b = (127-x)
+  print str(b'AESKey', "utf-8")
+  msg = ""
+  encryptedKey = str(key.encrypt(AESKey, 16)[0])
+  msg += encryptedKey
 
-aes = AESCipher(AESKey)
+  aes = AESCipher(AESKey)
 
-# for it in range(0, 128):
-#   print 'Iteration: %d' % it
-#   print 'Trying RSA cipertext... \n', bytes_to_long(rsaCiper), '\n...multiplied by 2^{%de} mod n' % it
-#   print '...with plaintext "%s"' cipertext
+  print 'Iteration: %d' % b
 
-try:
-  # Send data
-  message = str(args.message)
-  print binascii.hexlify(aes.pad(message))
-  msg += aes.encrypt(message)
+  tmpRSACiper = rsaCiper * (2**(b*e))
 
-  print 'Sending: "%s"' % message
-  # msg: AES key encrypted by the public key of RSA  + message encrypted by the AES key
-  sock.sendall(msg)
-
-  # Look for the response
-  amount_received = 0
-  amount_expected = len(message)
+  print 'Trying RSA cipertext... \n', bytes_to_long(tmpRSACiper), '\n...multiplied by 2^{%de} mod n' % b
+  print "Using AES key " + ':'.join(x.encode('hex') for x in AESKey)
   
-  if amount_expected % 16 != 0:
-    amount_expected += (16 - (len(message) % 16))
 
-  answer = ""
+  # Create a TCP/IP socket
+  sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-  if amount_expected > amount_received:
-    while amount_received < amount_expected:
-      data = sock.recv(MESSAGE_LENGTH)
-      amount_received += len(data)
-      answer += data
+  # Connect the socket to the port where the server is listening
+  server_address = (args.ipaddress, int(args.port))
+  sock.connect(server_address)
 
-    print aes.decrypt(answer)
+  try:
+    # Send data
+    message = str(args.message)
 
-finally:
-  sock.close()
+    print '...with plaintext %s' % message
+
+    msg += aes.encrypt(message)
+    print 'Sending: "%s"' % message
+    # msg: AES key encrypted by the public key of RSA  + message encrypted by the AES key
+    sock.sendall(msg)
+
+    # Look for the response
+    amount_received = 0
+    amount_expected = len(message)
+    
+    if amount_expected % 16 != 0:
+      amount_expected += (16 - (len(message) % 16))
+
+    answer = ""
+
+    if amount_expected > amount_received:
+      while amount_received < amount_expected:
+        data = sock.recv(MESSAGE_LENGTH)
+        amount_received += len(data)
+        answer += data
+
+      decAnswer = aes.decrypt(answer)
+
+      if decAnswer:
+        print "Server sent back %s" %decAnswer
+      else:
+        print "Server sent back junk"
+
+  finally:
+    sock.close()
