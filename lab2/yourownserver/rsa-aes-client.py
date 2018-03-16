@@ -16,49 +16,26 @@ parser.add_argument("-m", "--message", help='message to send to the server', req
 #parser.add_argument("-id", "--keyid", help='unique key id', required=True)
 args = parser.parse_args()
 
-
-# Create a TCP/IP socket
-# sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-# # Connect the socket to the port where the server is listening
-# server_address = (args.ipaddress, int(args.port))
-# sock.connect(server_address)
-
-# AESKey = os.urandom(16)
-
-
-# load server's public key
-serverPublicKeyFileName = "serverPublicKey"
-f = open(serverPublicKeyFileName,'r')
-key = RSA.importKey(f.read())
-n, e = key.n, key.e
 MESSAGE_LENGTH = 15
 
 # Initial AES Key to be all 0
-AESKey = [0] * 128
+AESKey = "0"*128
 
-rsaCiper = bytearray.fromhex('5fcb94936bd5926ec03a70fee7380687f9c523371e08b7bd19a511f5f548f80af265ec1044e3a5cfa9a2d52a13b19496819253231e19eca855f1a734e1eb3584d85a9bfc4a3600ca9018bb55bf20e468d5b9f18a8bc786a25bbe0c6c9fbc2ce15cd7d689385b136bb2428c7b514b358849c6cb422127275b5dc40d92b873e2763c26cb7e0bca5ab484a3522a6df975c909df67f9c4999826ef801c31375a7d93')
+pcap = bytearray.fromhex('5fcb94936bd5926ec03a70fee7380687f9c523371e08b7bd19a511f5f548f80af265ec1044e3a5cfa9a2d52a13b19496819253231e19eca855f1a734e1eb3584d85a9bfc4a3600ca9018bb55bf20e468d5b9f18a8bc786a25bbe0c6c9fbc2ce15cd7d689385b136bb2428c7b514b358849c6cb422127275b5dc40d92b873e2763c26cb7e0bca5ab484a3522a6df975c909df67f9c4999826ef801c31375a7d93')
 
 msgToCrack = bytearray.fromhex('5cce0bde11f5f815ae0292cd08c3c81f4b6036ec39f10c45fbe61c1a8822c9e6')
 
-cipher = bytes_to_long(rsaCiper[:128])
+cipherText = bytes_to_long(pcap[:128])
 
-for x in range(127, 0, -1):
-  b = (127-x)
-  print str(b'AESKey', "utf-8")
-  msg = ""
-  encryptedKey = str(key.encrypt(AESKey, 16)[0])
-  msg += encryptedKey
+aesToCrack = bytes_to_long(pcap[128:-1])
 
-  aes = AESCipher(AESKey)
+for x in range(0, 128):
 
-  print 'Iteration: %d' % b
-
-  tmpRSACiper = rsaCiper * (2**(b*e))
-
-  print 'Trying RSA cipertext... \n', bytes_to_long(tmpRSACiper), '\n...multiplied by 2^{%de} mod n' % b
-  print "Using AES key " + ':'.join(x.encode('hex') for x in AESKey)
-  
+  # load server's public key
+  serverPublicKeyFileName = "serverPublicKey"
+  f = open(serverPublicKeyFileName,'r')
+  key = RSA.importKey(f.read())
+  n, e = key.n, key.e
 
   # Create a TCP/IP socket
   sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -67,14 +44,34 @@ for x in range(127, 0, -1):
   server_address = (args.ipaddress, int(args.port))
   sock.connect(server_address)
 
+  b = (127-x)
+  
+  print 'Iteration: %d' % x
+
+  msg = ""
+  encryptedKey = str(key.encrypt(AESKey.encode(), 16)[0])
+  msg += encryptedKey
+
+  aes = AESCipher(AESKey.encode()) 
+
+  shiftedCipher = (cipherText * (2**(b*e))) % n
+
+  # tmpRSACipher = (bytes_to_long(rsaCiperText) * (2**(b*e))) % n
+
+  print 'Trying RSA cipertext... \n', shiftedCipher, '\n...which is...'
+  print cipherText, '\n...multiplied by 2^{%de} mod n'% b
+
   try:
     # Send data
-    message = str(args.message)
 
-    print '...with plaintext %s' % message
+    message = str(args.message)
+    print 'Trying AES key...\n', AESKey
+    print '...with plaintext "%s"' % message
 
     msg += aes.encrypt(message)
-    print 'Sending: "%s"' % message
+
+    print "here"
+    # print 'Sending: "%s"' % message
     # msg: AES key encrypted by the public key of RSA  + message encrypted by the AES key
     sock.sendall(msg)
 
