@@ -5,6 +5,7 @@ import os
 from aes import *
 from Crypto.PublicKey import RSA
 from Crypto.Util.number import *
+import time
 
 # Handle command-line arguments
 parser = argparse.ArgumentParser()
@@ -16,86 +17,91 @@ parser.add_argument("-m", "--message", help='message to send to the server', req
 #parser.add_argument("-id", "--keyid", help='unique key id', required=True)
 args = parser.parse_args()
 
+ # load server's public key
+serverPublicKeyFileName = "serverPublicKey"
+f = open(serverPublicKeyFileName,'r')
+key = RSA.importKey(f.read())
+n, e = key.n, key.e
 MESSAGE_LENGTH = 15
 
 # Initial AES Key to be all 0
 AESKey = "0"*128
 
-pcap = bytearray.fromhex('5fcb94936bd5926ec03a70fee7380687f9c523371e08b7bd19a511f5f548f80af265ec1044e3a5cfa9a2d52a13b19496819253231e19eca855f1a734e1eb3584d85a9bfc4a3600ca9018bb55bf20e468d5b9f18a8bc786a25bbe0c6c9fbc2ce15cd7d689385b136bb2428c7b514b358849c6cb422127275b5dc40d92b873e2763c26cb7e0bca5ab484a3522a6df975c909df67f9c4999826ef801c31375a7d93')
+pcap = bytearray.fromhex('068cbe8e5e1b9dfc5e3e78ea94c8c6b3b51129688973c9670a926b7079bbfaf3b4ac76a6c58ea62565920024e8b6ac74cb0ad5150df09807aa5f2e1350049d6872ef5befb3877248ba5d11060cdd5435034515570778c29359f972bae369745d377de1c647f4fa86b0e97ee12857796a7a855b89bb5b2aa93948e899410aad2ac970534ee6c1e9e0638da20189dcd6d31715e5d427e997b668408f953d7be3362185f2ba2c2b1f0ed2abdc1352978bd4')
 
-msgToCrack = bytearray.fromhex('5cce0bde11f5f815ae0292cd08c3c81f4b6036ec39f10c45fbe61c1a8822c9e6')
+cipherText = bytes_to_long(pcap[0:128])
 
-cipherText = bytes_to_long(pcap[:128])
+msgToCrack = str(pcap[128:len(pcap)])
 
-aesToCrack = bytes_to_long(pcap[128:-1])
+for x in range(0, 1):
 
-for x in range(0, 128):
-
-  # load server's public key
-  serverPublicKeyFileName = "serverPublicKey"
-  f = open(serverPublicKeyFileName,'r')
-  key = RSA.importKey(f.read())
-  n, e = key.n, key.e
-
-  # Create a TCP/IP socket
-  sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-  # Connect the socket to the port where the server is listening
-  server_address = (args.ipaddress, int(args.port))
-  sock.connect(server_address)
-
+  bitNotCorrect = False 
   b = (127-x)
-  
+
   print 'Iteration: %d' % x
 
-  msg = ""
-  encryptedKey = str(key.encrypt(AESKey.encode(), 16)[0])
-  msg += encryptedKey
-
-  aes = AESCipher(AESKey.encode()) 
-
-  shiftedCipher = (cipherText * (2**(b*e))) % n
-
-  # tmpRSACipher = (bytes_to_long(rsaCiperText) * (2**(b*e))) % n
+  shiftedCipher = (cipherText * 2**(b*e)) % n
+  guess = str(long_to_bytes(shiftedCipher, 128))
 
   print 'Trying RSA cipertext... \n', shiftedCipher, '\n...which is...'
   print cipherText, '\n...multiplied by 2^{%de} mod n'% b
 
-  try:
-    # Send data
+  # Send data
+  message = 'Example Text 123'
+  print 'Trying AES key...\n', AESKey
+  print '...with plaintext "%s"' % message
 
-    message = str(args.message)
-    print 'Trying AES key...\n', AESKey
-    print '...with plaintext "%s"' % message
+  while not bitNotCorrect:
+    time.sleep(.01)
 
-    msg += aes.encrypt(message)
+    # Create a TCP/IP socket
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    print "here"
-    # print 'Sending: "%s"' % message
-    # msg: AES key encrypted by the public key of RSA  + message encrypted by the AES key
-    sock.sendall(msg)
+    # Connect the socket to the port where the server is listening
+    server_address = (args.ipaddress, int(args.port))
+    sock.connect(server_address)
 
-    # Look for the response
-    amount_received = 0
-    amount_expected = len(message)
-    
-    if amount_expected % 16 != 0:
-      amount_expected += (16 - (len(message) % 16))
+    msg = ""
+    msg += guess
 
-    answer = ""
+    aes = AESCipher(long_to_bytes(int(AESKey,2), 16))
 
-    if amount_expected > amount_received:
-      while amount_received < amount_expected:
-        data = sock.recv(MESSAGE_LENGTH)
-        amount_received += len(data)
-        answer += data
+    try:
+      msg += aes.encrypt(message)
 
-      decAnswer = aes.decrypt(answer)
+      sock.sendall(msg)
 
-      if decAnswer:
-        print "Server sent back %s" %decAnswer
-      else:
-        print "Server sent back junk"
+      # Look for the response
+      amount_received = 0
+      amount_expected = len(message)
+      
+      if amount_expected % 16 != 0:
+        amount_expected += (16 - (len(message) % 16))
 
-  finally:
-    sock.close()
+      answer = ""
+
+      if amount_expected > amount_received:
+        while amount_received < amount_expected:
+          data = sock.recv(MESSAGE_LENGTH)
+          amount_received += len(data)
+          answer += data
+
+        decAnswer = aes.decrypt(answer).strip()
+
+        if message.upper() == decAnswer:
+          print "Server sent back %s" %message.upper()
+          AESKey = '0' + AESKey[0:127]
+          print AESKey
+          bitNotCorrect = True
+        else:
+          print "Server sent back junk"
+          AESKey = '1' + AESKey[1:128]
+          print AESKey
+
+
+    finally:
+      sock.close()
+
+  aes = AESCipher(long_to_bytes(int(AESKey,2), 16))
+  last = aes.decrypt(str(msgToCrack))
+  print last
