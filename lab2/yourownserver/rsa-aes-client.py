@@ -27,13 +27,13 @@ MESSAGE_LENGTH = 15
 # Initial AES Key to be all 0
 AESKey = "0"*128
 
-pcap = bytearray.fromhex('068cbe8e5e1b9dfc5e3e78ea94c8c6b3b51129688973c9670a926b7079bbfaf3b4ac76a6c58ea62565920024e8b6ac74cb0ad5150df09807aa5f2e1350049d6872ef5befb3877248ba5d11060cdd5435034515570778c29359f972bae369745d377de1c647f4fa86b0e97ee12857796a7a855b89bb5b2aa93948e899410aad2ac970534ee6c1e9e0638da20189dcd6d31715e5d427e997b668408f953d7be3362185f2ba2c2b1f0ed2abdc1352978bd4')
+pcap = bytearray.fromhex('05a91e3b3197c36783f986eb7c7ba88b40a9e76224b49557aafd0a4ca0aeff9525781b13bd6accf3bb05b20235cf1d63ef7bcef8d5c0414b75aaeb08279aa4c1c412e72082aeaf6ee303e30dee1d56d5d97388e55088247d655ecc5e12dbc02581c97f2c30c42518db2d10a7e9540497e6dc9db442945740a701494eadd0b439de5c41c0908590f6e36f7dd295f3d069ccff6fbd16b411f488ffa99e2b4fc509')
 
-cipherText = bytes_to_long(pcap[0:128])
+cipherText = bytes_to_long(pcap[:128])
 
-msgToCrack = str(pcap[128:len(pcap)])
+msgToCrack = str(pcap[128:])
 
-for x in range(0, 1):
+for x in range(0, 128):
 
   bitNotCorrect = False 
   b = (127-x)
@@ -52,7 +52,7 @@ for x in range(0, 1):
   print '...with plaintext "%s"' % message
 
   while not bitNotCorrect:
-    time.sleep(.01)
+    # time.sleep(.1)
 
     # Create a TCP/IP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -87,9 +87,12 @@ for x in range(0, 1):
           answer += data
 
         decAnswer = aes.decrypt(answer).strip()
+        print decAnswer
 
         if message.upper() == decAnswer:
           print "Server sent back %s" %message.upper()
+          if x == 127:
+            break
           AESKey = '0' + AESKey[0:127]
           print AESKey
           bitNotCorrect = True
@@ -102,6 +105,6 @@ for x in range(0, 1):
     finally:
       sock.close()
 
+  print AESKey
   aes = AESCipher(long_to_bytes(int(AESKey,2), 16))
-  last = aes.decrypt(str(msgToCrack))
-  print last
+  print aes.decrypt(msgToCrack)
