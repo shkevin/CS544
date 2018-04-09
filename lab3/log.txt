@@ -1,0 +1,2 @@
+game 1 played: Apr 9 --moderator was Nicholas Folse group.
+Learned: You can view the bytes received and the users within the VM by typing w, then using the command ss -nti and viewing the bytes received. We can infer that as the bytes increment then that is the "person" talking at that time.
