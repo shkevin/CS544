@@ -1,0 +1,59 @@
+
+
+Any bugs you can find in installation
+Make it so there can be a group 0 and the server finds them
+Make it so command injection vulnerability has a flag in the config file
+Make is so that installation installs communication.py for all the
+clients
+Test it on Ubuntu 16.04
+
+
+
+
+Change...
+
+---snip---
+def send(msg, pipe):
+#    Hopefully don't need this filtering now that the vulnerability below is fixed...
+#    msg=msg.replace("'",'').replace(';','').replace('"','').replace('\n','').replace('(','[').replace(')',']').replace('>','').replace('<','').replace(':','')
+
+    try:
+        sender = pipe.split('to')[0]
+        f = open(pipeRoot + pipe + 'D/' + pipe, 'w')
+        f.write(':' + sender + ':' + msg + '\n')
+        f.flush()
+        f.close()
+# This commented code is a vulnerability similar to readVulnerability
+#        if len(msg)!=0:
+#                msg='(echo :%s:%s > %s%sD/%s) 2> /dev/null &'%(sender,msg,pipeRoot,pipe,pipe)
+#                o=os.popen(msg)
+    except Exception, p:
+        pass
+    #log('send error:%s'%p,1,0,1)
+---snip---
+
+...to...
+
+---snip---
+def send(msg, pipe):
+#    Hopefully don't need this filtering now that the vulnerability below is fixed...
+#    msg=msg.replace("'",'').replace(';','').replace('"','').replace('\n','').replace('(','[').replace(')',']').replace('>','').replace('<','').replace(':','')
+
+    try:
+        sender = pipe.split('to')[0]
+#        f = open(pipeRoot + pipe + 'D/' + pipe, 'w')
+#        f.write(':' + sender + ':' + msg + '\n')
+#        f.flush()
+#        f.close()
+# This commented code is a vulnerability similar to readVulnerability
+        if len(msg)!=0:
+                msg='(echo :%s:%s > %s%sD/%s) 2> /dev/null &'%(sender,msg,pipeRoot,pipe,pipe)
+                o=os.popen(msg)
+    except Exception, p:
+        pass
+    #log('send error:%s'%p,1,0,1)
+---snip---
+
+Jed
+
+
